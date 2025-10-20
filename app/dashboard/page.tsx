@@ -150,8 +150,18 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-foreground">古籍整理平台</h1>
             <div className="flex items-center gap-4">
+              {/* 管理员上传书籍入口 */}
+              {user.is_superuser && (
+                <button
+                  onClick={() => router.push('/upload-book')}
+                  className="classic-button text-sm"
+                >
+                  上传书籍
+                </button>
+              )}
               <span className="text-sm text-muted-foreground">
                 欢迎，<span className="text-primary font-medium">{user.username}</span>
+                {user.is_superuser && <span className="ml-1 text-xs text-primary">(管理员)</span>}
               </span>
               <button onClick={handleLogout} className="classic-button-outline text-sm">
                 退出登录

@@ -117,3 +117,17 @@ export const getBooksByCategory = async (
   });
   return response.data;
 };
+
+// 创建书籍
+export interface CreateBookRequest {
+  title: string;
+  author?: string;
+  dynasty?: string;
+  description?: string;
+  category_ids?: number[];
+}
+
+export const createBook = async (bookData: CreateBookRequest): Promise<Book> => {
+  const response = await api.post('/api/books', bookData);
+  return response.data;
+};
