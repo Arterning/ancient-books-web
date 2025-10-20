@@ -131,3 +131,32 @@ export const createBook = async (bookData: CreateBookRequest): Promise<Book> => 
   const response = await api.post('/api/books', bookData);
   return response.data;
 };
+
+// 上传书籍图片
+export interface UploadImagesResponse {
+  message: string;
+  images: Array<{
+    filename: string;
+    page_number: number;
+    file_size: number;
+    ocr_characters?: number;
+    ocr_error?: string;
+  }>;
+}
+
+export const uploadBookImages = async (
+  bookId: number,
+  files: File[]
+): Promise<UploadImagesResponse> => {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append('files', file);
+  });
+
+  const response = await api.post(`/api/books/${bookId}/images`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};

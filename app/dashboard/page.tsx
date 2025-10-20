@@ -237,9 +237,19 @@ export default function DashboardPage() {
                             <span className="text-xs text-muted-foreground">
                               {new Date(book.created_at).toLocaleDateString('zh-CN')}
                             </span>
-                            <button className="classic-button-outline text-xs">
-                              查看详情
-                            </button>
+                            <div className="flex gap-2">
+                              {user.is_superuser && (
+                                <button
+                                  onClick={() => router.push(`/upload-images/${book.id}`)}
+                                  className="classic-button text-xs"
+                                >
+                                  上传图片
+                                </button>
+                              )}
+                              <button className="classic-button-outline text-xs">
+                                查看详情
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
