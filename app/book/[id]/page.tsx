@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getBookDetail, BookDetail, BookImage, Chapter, OCRCharacter, API_BASE_URL } from '@/lib/api';
 
@@ -19,6 +19,18 @@ export default function BookDetailPage() {
   const [currentPageIndex, setCurrentPageIndex] = useState(0); // 当前页面索引（从0开始）
   const [expandedChapters, setExpandedChapters] = useState<Set<number>>(new Set());
   const [imageZoom, setImageZoom] = useState(1); // 图片缩放比例
+
+  // 字符选择状态
+  const [selectedCharIds, setSelectedCharIds] = useState<Set<number>>(new Set());
+  const [lastSelectedCharId, setLastSelectedCharId] = useState<number | null>(null);
+
+  // Canvas 相关引用
+  const imageRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+
+  // 获取当前页面 - 必须在 useEffect 之前定义
+  const currentImage = book?.images[currentPageIndex];
 
   // 加载书籍详情
   useEffect(() => {
@@ -44,6 +56,63 @@ export default function BookDetailPage() {
       loadBook();
     }
   }, [bookId]);
+
+  // 切换页面时清空选择
+  useEffect(() => {
+    setSelectedCharIds(new Set());
+    setLastSelectedCharId(null);
+  }, [currentPageIndex]);
+
+  // 绘制选中字符的高亮框
+  useEffect(() => {
+    if (!canvasRef.current || !imageRef.current || !currentImage || selectedCharIds.size === 0) {
+      // 清空 canvas
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        }
+      }
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // 设置 canvas 尺寸与图片实际尺寸一致
+    const img = imageRef.current;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+
+    // 清空画布
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 获取选中的字符
+    const selectedChars = currentImage.ocr_characters.filter(char =>
+      selectedCharIds.has(char.id)
+    );
+
+    // 绘制每个选中字符的高亮框
+    selectedChars.forEach(char => {
+      const bbox = char.bbox;
+
+      // 绘制半透明填充
+      ctx.fillStyle = 'rgba(200, 85, 61, 0.2)'; // 朱砂红，20%透明度
+      ctx.beginPath();
+      ctx.moveTo(bbox.p1.x, bbox.p1.y);
+      ctx.lineTo(bbox.p2.x, bbox.p2.y);
+      ctx.lineTo(bbox.p3.x, bbox.p3.y);
+      ctx.lineTo(bbox.p4.x, bbox.p4.y);
+      ctx.closePath();
+      ctx.fill();
+
+      // 绘制边框
+      ctx.strokeStyle = 'rgba(200, 85, 61, 0.8)'; // 朱砂红，80%透明度
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+  }, [selectedCharIds, currentImage, imageDimensions]);
 
   // 切换章节展开/收起
   const toggleChapter = (chapterId: number, e: React.MouseEvent) => {
@@ -120,8 +189,55 @@ export default function BookDetailPage() {
     }
   };
 
-  // 获取当前页面
-  const currentImage = book?.images[currentPageIndex];
+  // 字符选择处理
+  const handleCharClick = (charId: number, event: React.MouseEvent) => {
+    if (!currentImage) return;
+
+    const chars = currentImage.ocr_characters.sort((a, b) => a.sequence - b.sequence);
+
+    if (event.shiftKey && lastSelectedCharId !== null) {
+      // Shift + 点击：选择范围
+      const lastIndex = chars.findIndex(c => c.id === lastSelectedCharId);
+      const currentIndex = chars.findIndex(c => c.id === charId);
+
+      if (lastIndex !== -1 && currentIndex !== -1) {
+        const start = Math.min(lastIndex, currentIndex);
+        const end = Math.max(lastIndex, currentIndex);
+        const rangeIds = chars.slice(start, end + 1).map(c => c.id);
+
+        setSelectedCharIds(new Set(rangeIds));
+      }
+    } else {
+      // 普通点击：切换单个字符的选中状态
+      setSelectedCharIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(charId)) {
+          newSet.delete(charId);
+          if (charId === lastSelectedCharId) {
+            setLastSelectedCharId(null);
+          }
+        } else {
+          newSet.add(charId);
+          setLastSelectedCharId(charId);
+        }
+        return newSet;
+      });
+
+      if (!selectedCharIds.has(charId)) {
+        setLastSelectedCharId(charId);
+      }
+    }
+  };
+
+  // 图片加载完成后记录尺寸
+  const handleImageLoad = () => {
+    if (imageRef.current) {
+      setImageDimensions({
+        width: imageRef.current.naturalWidth,
+        height: imageRef.current.naturalHeight,
+      });
+    }
+  };
 
   // 将 OCR 字符按照 sequence 排序并拼接成文本
   const getOCRText = (ocrCharacters: OCRCharacter[]) => {
@@ -215,19 +331,33 @@ export default function BookDetailPage() {
                   </div>
 
                   {/* 图片显示区域 */}
-                  <div className="bg-muted rounded-md overflow-hidden mb-4" style={{ height: '600px' }}>
+                  <div className="bg-muted rounded-md overflow-hidden mb-4 relative" style={{ height: '600px' }}>
                     {currentImage ? (
-                      <div className="w-full h-full overflow-auto flex items-center justify-center">
-                        <img
-                          src={`${API_BASE_URL}/${currentImage.file_path.replace(/\\/g, '/')}`}
-                          alt={`第 ${currentPageIndex + 1} 页`}
-                          className="object-contain"
-                          style={{
-                            transform: `scale(${imageZoom})`,
-                            transformOrigin: 'center center',
-                            transition: 'transform 0.2s ease',
-                          }}
-                        />
+                      <div className="w-full h-full overflow-auto flex items-center justify-center relative">
+                        <div className="relative inline-block">
+                          <img
+                            ref={imageRef}
+                            src={`${API_BASE_URL}/${currentImage.file_path.replace(/\\/g, '/')}`}
+                            alt={`第 ${currentPageIndex + 1} 页`}
+                            className="object-contain"
+                            style={{
+                              transform: `scale(${imageZoom})`,
+                              transformOrigin: 'center center',
+                              transition: 'transform 0.2s ease',
+                            }}
+                            onLoad={handleImageLoad}
+                          />
+                          {/* Canvas 用于绘制高亮框 */}
+                          <canvas
+                            ref={canvasRef}
+                            className="absolute top-0 left-0 pointer-events-none"
+                            style={{
+                              transform: `scale(${imageZoom})`,
+                              transformOrigin: 'center center',
+                              transition: 'transform 0.2s ease',
+                            }}
+                          />
+                        </div>
                       </div>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -291,11 +421,11 @@ export default function BookDetailPage() {
                   <div className="bg-muted rounded-md p-4 overflow-y-auto" style={{ height: '600px' }}>
                     {currentImage && currentImage.ocr_characters.length > 0 ? (
                       <div className="space-y-4">
-                        {/* 识别文本 */}
+                        {/* 识别文本 - 横排显示 */}
                         <div>
                           <h4 className="text-sm font-medium text-foreground mb-2">识别文本：</h4>
-                          <div className="bg-background rounded p-4 overflow-x-auto" style={{ minHeight: '200px' }}>
-                            <div className="text-base text-foreground writing-mode-vertical-rl" style={{ height: '100%' }}>
+                          <div className="bg-background rounded p-4" style={{ minHeight: '100px' }}>
+                            <div className="text-base text-foreground leading-relaxed" style={{ lineHeight: '1.8' }}>
                               {getOCRText(currentImage.ocr_characters)}
                             </div>
                           </div>
@@ -304,7 +434,7 @@ export default function BookDetailPage() {
                         {/* 字符详情 */}
                         <div>
                           <h4 className="text-sm font-medium text-foreground mb-2">
-                            字符详情（共 {currentImage.ocr_characters.length} 字）：
+                            字符详情（共 {currentImage.ocr_characters.length} 字，点击选择，Shift+点击多选）：
                           </h4>
                           <div className="space-y-2 max-h-96 overflow-y-auto">
                             {currentImage.ocr_characters
@@ -312,7 +442,12 @@ export default function BookDetailPage() {
                               .map((char) => (
                                 <div
                                   key={char.id}
-                                  className="bg-background rounded p-2 text-sm border border-border"
+                                  onClick={(e) => handleCharClick(char.id, e)}
+                                  className={`bg-background rounded p-2 text-sm border cursor-pointer transition-all ${
+                                    selectedCharIds.has(char.id)
+                                      ? 'border-primary bg-primary/5 shadow-sm'
+                                      : 'border-border hover:border-primary/50'
+                                  }`}
                                 >
                                   <div className="flex items-center justify-between mb-1">
                                     <span className="font-medium text-foreground text-lg">
