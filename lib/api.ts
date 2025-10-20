@@ -98,6 +98,66 @@ export interface BookListResponse {
   items: Book[];
 }
 
+// 章节类型
+export interface Chapter {
+  id: number;
+  title: string;
+  sort_order: number;
+  start_page: number | null;
+  end_page: number | null;
+  book_id: number;
+  parent_id: number | null;
+  created_at: string;
+  updated_at: string;
+  children?: Chapter[];
+}
+
+// OCR 相关类型
+export interface BBox {
+  p1: { x: number; y: number };
+  p2: { x: number; y: number };
+  p3: { x: number; y: number };
+  p4: { x: number; y: number };
+}
+
+export interface CharacterCandidate {
+  candidate_char: string;
+  confidence: number;
+  rank: number;
+}
+
+export interface OCRCharacter {
+  id: number;
+  sequence: number;
+  current_char: string;
+  original_char: string;
+  is_corrected: boolean;
+  confidence: number;
+  bbox: BBox;
+  candidates: CharacterCandidate[];
+}
+
+export interface BookImage {
+  id: number;
+  book_id: number;
+  filename: string;
+  file_path: string;
+  page_number: number;
+  file_size: number | null;
+  ocr_text: string | null;
+  created_at: string;
+  ocr_characters: OCRCharacter[];
+}
+
+// 书籍详情类型
+export interface BookDetail extends Book {
+  ocr_text: string | null;
+  processed_text: string | null;
+  images: BookImage[];
+  categories: Category[];
+  chapters: Chapter[];
+}
+
 // API 函数
 
 // 获取类目树
@@ -158,5 +218,11 @@ export const uploadBookImages = async (
       'Content-Type': 'multipart/form-data',
     },
   });
+  return response.data;
+};
+
+// 获取书籍详情
+export const getBookDetail = async (bookId: number): Promise<BookDetail> => {
+  const response = await api.get(`/api/books/${bookId}`);
   return response.data;
 };

@@ -246,7 +246,10 @@ export default function DashboardPage() {
                                   上传图片
                                 </button>
                               )}
-                              <button className="classic-button-outline text-xs">
+                              <button
+                                onClick={() => router.push(`/book/${book.id}`)}
+                                className="classic-button-outline text-xs"
+                              >
                                 查看详情
                               </button>
                             </div>
