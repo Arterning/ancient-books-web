@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/* 古朴风格的颜色主题 */
+:root {
+  --background: #f5f0e8; /* 米白色背景 */
+  --foreground: #3d2f1f; /* 深褐色文字 */
+  --primary: #c8553d; /* 朱砂红 */
+  --primary-foreground: #f5f0e8;
+  --secondary: #e8dcc4; /* 浅驼色 */
+  --border: #d4c4a8;
+  --input: #e8dcc4;
+  --muted: #efe9dd;
+  --accent: #d9cdb3;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "STKaiti", "KaiTi", serif;
+}
+
+/* 古典纸张质感 */
+.paper-texture {
+  background-color: var(--background);
+  background-image:
+    linear-gradient(90deg, rgba(0,0,0,.03) 1px, transparent 1px),
+    linear-gradient(rgba(0,0,0,.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* 古典卡片 */
+.classic-card {
+  background: #fefdfb;
+  border-radius: 0.5rem;
+  border: 2px solid var(--border);
+  padding: 1.5rem;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    inset 0 0 30px rgba(255, 248, 235, 0.5);
+}
+
+/* 古典按钮 */
+.classic-button {
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.375rem;
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 500;
+  transition: all 0.2s;
+  font-family: serif;
+  cursor: pointer;
+}
+
+.classic-button:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.classic-button:active {
+  transform: scale(0.95);
+}
+
+.classic-button-outline {
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.375rem;
+  border: 2px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  font-weight: 500;
+  transition: all 0.2s;
+  font-family: serif;
+  cursor: pointer;
+}
+
+.classic-button-outline:hover {
+  background: var(--accent);
+  border-color: var(--primary);
+}
+
+/* 古典输入框 */
+.classic-input {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  border-radius: 0.375rem;
+  border: 2px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: serif;
+  transition: all 0.2s;
+}
+
+.classic-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(200, 85, 61, 0.1);
+}
+
+/* 标题装饰线 */
+.title-decoration {
+  position: relative;
+  display: inline-block;
+  padding: 0 4rem;
+}
+
+.title-decoration::before,
+.title-decoration::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 3rem;
+  height: 2px;
+  background: var(--primary);
+}
+
+.title-decoration::before {
+  left: 0;
+}
+
+.title-decoration::after {
+  right: 0;
+}
+
+/* 滚动条样式 */
+.scrollbar-classic::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-classic::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+.scrollbar-classic::-webkit-scrollbar-thumb {
+  background: rgba(200, 85, 61, 0.3);
+  border-radius: 4px;
+}
+
+.scrollbar-classic::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 85, 61, 0.5);
+}
