@@ -24,6 +24,10 @@ export default function BookDetailPage() {
   const [selectedCharIds, setSelectedCharIds] = useState<Set<number>>(new Set());
   const [lastSelectedCharId, setLastSelectedCharId] = useState<number | null>(null);
 
+  // 文本拖动选择状态
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<number | null>(null);
+
   // Canvas 相关引用
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,6 +65,8 @@ export default function BookDetailPage() {
   useEffect(() => {
     setSelectedCharIds(new Set());
     setLastSelectedCharId(null);
+    setIsSelecting(false);
+    setSelectionStart(null);
   }, [currentPageIndex]);
 
   // 绘制选中字符的高亮框
@@ -189,7 +195,7 @@ export default function BookDetailPage() {
     }
   };
 
-  // 字符选择处理
+  // 字符选择处理（点击字符详情卡片）
   const handleCharClick = (charId: number, event: React.MouseEvent) => {
     if (!currentImage) return;
 
@@ -228,6 +234,48 @@ export default function BookDetailPage() {
       }
     }
   };
+
+  // 文本选择处理 - 开始拖动
+  const handleTextMouseDown = (sequence: number) => {
+    setIsSelecting(true);
+    setSelectionStart(sequence);
+    setSelectedCharIds(new Set()); // 清空之前的选择
+  };
+
+  // 文本选择处理 - 拖动中
+  const handleTextMouseEnter = (sequence: number) => {
+    if (!isSelecting || selectionStart === null || !currentImage) return;
+
+    const chars = currentImage.ocr_characters.sort((a, b) => a.sequence - b.sequence);
+    const start = Math.min(selectionStart, sequence);
+    const end = Math.max(selectionStart, sequence);
+
+    const selectedIds = chars
+      .filter(char => char.sequence >= start && char.sequence <= end)
+      .map(char => char.id);
+
+    setSelectedCharIds(new Set(selectedIds));
+  };
+
+  // 文本选择处理 - 结束拖动
+  const handleTextMouseUp = () => {
+    setIsSelecting(false);
+    // 保持选择状态，不清空 selectionStart，以便后续操作
+  };
+
+  // 监听全局 mouseup 事件，确保拖动结束
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (isSelecting) {
+        setIsSelecting(false);
+      }
+    };
+
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isSelecting]);
 
   // 图片加载完成后记录尺寸
   const handleImageLoad = () => {
@@ -421,12 +469,37 @@ export default function BookDetailPage() {
                   <div className="bg-muted rounded-md p-4 overflow-y-auto" style={{ height: '600px' }}>
                     {currentImage && currentImage.ocr_characters.length > 0 ? (
                       <div className="space-y-4">
-                        {/* 识别文本 - 横排显示 */}
+                        {/* 识别文本 - 横排显示，每个字符可拖动选择 */}
                         <div>
-                          <h4 className="text-sm font-medium text-foreground mb-2">识别文本：</h4>
-                          <div className="bg-background rounded p-4" style={{ minHeight: '100px' }}>
+                          <h4 className="text-sm font-medium text-foreground mb-2">识别文本（拖动选择文字）：</h4>
+                          <div
+                            className="bg-background rounded p-4 select-none"
+                            style={{ minHeight: '100px' }}
+                            onMouseUp={handleTextMouseUp}
+                          >
                             <div className="text-base text-foreground leading-relaxed" style={{ lineHeight: '1.8' }}>
-                              {getOCRText(currentImage.ocr_characters)}
+                              {currentImage.ocr_characters
+                                .sort((a, b) => a.sequence - b.sequence)
+                                .map((char) => (
+                                  <span
+                                    key={char.id}
+                                    data-char-id={char.id}
+                                    data-sequence={char.sequence}
+                                    onMouseDown={() => handleTextMouseDown(char.sequence)}
+                                    onMouseEnter={() => handleTextMouseEnter(char.sequence)}
+                                    className={`inline-block cursor-pointer transition-colors ${
+                                      selectedCharIds.has(char.id)
+                                        ? 'bg-primary/20 text-primary font-medium'
+                                        : 'hover:bg-muted'
+                                    }`}
+                                    style={{
+                                      userSelect: 'none',
+                                      WebkitUserSelect: 'none',
+                                    }}
+                                  >
+                                    {char.current_char}
+                                  </span>
+                                ))}
                             </div>
                           </div>
                         </div>
