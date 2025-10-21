@@ -226,3 +226,17 @@ export const getBookDetail = async (bookId: number): Promise<BookDetail> => {
   const response = await api.get(`/api/books/${bookId}`);
   return response.data;
 };
+
+// 更新OCR字符
+export interface UpdateOCRCharacterRequest {
+  new_char: string;
+  note?: string;
+}
+
+export const updateOCRCharacter = async (
+  charId: number,
+  data: UpdateOCRCharacterRequest
+): Promise<OCRCharacter> => {
+  const response = await api.put(`/api/ocr/characters/${charId}`, data);
+  return response.data;
+};

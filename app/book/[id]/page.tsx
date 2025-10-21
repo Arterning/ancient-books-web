@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getBookDetail, BookDetail, BookImage, Chapter, OCRCharacter, API_BASE_URL } from '@/lib/api';
-import { MessageSquare, Bookmark, Lightbulb, Copy, Check } from 'lucide-react';
+import { MessageSquare, Bookmark, Lightbulb, Copy, Check, FileEdit } from 'lucide-react';
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -429,9 +429,18 @@ export default function BookDetailPage() {
                 {book.dynasty && <span>朝代：{book.dynasty}</span>}
               </div>
             </div>
-            <button onClick={() => router.push('/dashboard')} className="classic-button-outline">
-              返回首页
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push(`/proofreading/${bookId}`)}
+                className="classic-button flex items-center gap-2"
+              >
+                <FileEdit size={16} />
+                <span>校对</span>
+              </button>
+              <button onClick={() => router.push('/dashboard')} className="classic-button-outline">
+                返回首页
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -541,7 +550,7 @@ export default function BookDetailPage() {
                       }`}
                       title="上一页"
                     >
-                      ← 上一页
+                      ←
                     </button>
                     <button
                       onClick={handleNextPage}
@@ -551,7 +560,7 @@ export default function BookDetailPage() {
                       }`}
                       title="下一页"
                     >
-                      下一页 →
+                      →
                     </button>
                   </div>
                 </div>
