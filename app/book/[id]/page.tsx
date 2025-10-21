@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getBookDetail, BookDetail, BookImage, Chapter, OCRCharacter, API_BASE_URL } from '@/lib/api';
+import { MessageSquare, Bookmark, Lightbulb, Copy, Check } from 'lucide-react';
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -27,6 +28,12 @@ export default function BookDetailPage() {
   // 文本拖动选择状态
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
+
+  // 工具栏状态
+  const [showToolbar, setShowToolbar] = useState(false);
+  const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
+  const [copied, setCopied] = useState(false);
+  const textContainerRef = useRef<HTMLDivElement>(null);
 
   // Canvas 相关引用
   const imageRef = useRef<HTMLImageElement>(null);
@@ -67,6 +74,8 @@ export default function BookDetailPage() {
     setLastSelectedCharId(null);
     setIsSelecting(false);
     setSelectionStart(null);
+    setShowToolbar(false);
+    setCopied(false);
   }, [currentPageIndex]);
 
   // 绘制选中字符的高亮框
@@ -260,7 +269,31 @@ export default function BookDetailPage() {
   // 文本选择处理 - 结束拖动
   const handleTextMouseUp = () => {
     setIsSelecting(false);
-    // 保持选择状态，不清空 selectionStart，以便后续操作
+
+    // 如果有选中的字符，显示工具栏
+    if (selectedCharIds.size > 0 && textContainerRef.current) {
+      // 计算工具栏位置：找到最后一个选中字符的位置
+      const sortedChars = currentImage?.ocr_characters
+        .filter(char => selectedCharIds.has(char.id))
+        .sort((a, b) => a.sequence - b.sequence);
+
+      if (sortedChars && sortedChars.length > 0) {
+        const lastChar = sortedChars[sortedChars.length - 1];
+        const lastCharElement = document.querySelector(`[data-char-id="${lastChar.id}"]`);
+
+        if (lastCharElement && textContainerRef.current) {
+          const charRect = lastCharElement.getBoundingClientRect();
+          const containerRect = textContainerRef.current.getBoundingClientRect();
+
+          // 工具栏位置：相对于文本容器，在最后一个字符下方
+          setToolbarPosition({
+            top: charRect.bottom - containerRect.top + 8,
+            left: charRect.left - containerRect.left,
+          });
+          setShowToolbar(true);
+        }
+      }
+    }
   };
 
   // 监听全局 mouseup 事件，确保拖动结束
@@ -276,6 +309,68 @@ export default function BookDetailPage() {
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
   }, [isSelecting]);
+
+  // 监听点击外部区域，隐藏工具栏
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const isTextContainer = textContainerRef.current?.contains(target);
+      const isToolbar = target.closest('.selection-toolbar');
+
+      if (!isTextContainer && !isToolbar && showToolbar) {
+        setShowToolbar(false);
+        setCopied(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showToolbar]);
+
+  // 获取选中文本
+  const getSelectedText = () => {
+    if (!currentImage || selectedCharIds.size === 0) return '';
+
+    return currentImage.ocr_characters
+      .filter(char => selectedCharIds.has(char.id))
+      .sort((a, b) => a.sequence - b.sequence)
+      .map(char => char.current_char)
+      .join('');
+  };
+
+  // 复制选中文本
+  const handleCopy = async () => {
+    const text = getSelectedText();
+    if (!text) return;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // 2秒后恢复
+    } catch (err) {
+      console.error('复制失败:', err);
+    }
+  };
+
+  // 问AI（占位）
+  const handleAskAI = () => {
+    console.log('问AI:', getSelectedText());
+    // TODO: 实现问AI功能
+  };
+
+  // 标记（占位）
+  const handleBookmark = () => {
+    console.log('标记:', getSelectedText());
+    // TODO: 实现标记功能
+  };
+
+  // 写想法（占位）
+  const handleNote = () => {
+    console.log('写想法:', getSelectedText());
+    // TODO: 实现写想法功能
+  };
 
   // 图片加载完成后记录尺寸
   const handleImageLoad = () => {
@@ -473,7 +568,8 @@ export default function BookDetailPage() {
                         <div>
                           <h4 className="text-sm font-medium text-foreground mb-2">识别文本（拖动选择文字）：</h4>
                           <div
-                            className="bg-background rounded p-4 select-none"
+                            ref={textContainerRef}
+                            className="bg-background rounded p-4 select-none relative"
                             style={{ minHeight: '100px' }}
                             onMouseUp={handleTextMouseUp}
                           >
@@ -501,6 +597,59 @@ export default function BookDetailPage() {
                                   </span>
                                 ))}
                             </div>
+
+                            {/* 浮动工具栏 */}
+                            {showToolbar && (
+                              <div
+                                className="selection-toolbar absolute z-10 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-border px-2 py-1.5"
+                                style={{
+                                  top: `${toolbarPosition.top}px`,
+                                  left: `${toolbarPosition.left}px`,
+                                }}
+                              >
+                                <button
+                                  onClick={handleAskAI}
+                                  className="flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors text-xs text-foreground"
+                                  title="问AI"
+                                >
+                                  <MessageSquare size={14} />
+                                  <span>问AI</span>
+                                </button>
+
+                                <div className="w-px h-4 bg-border" />
+
+                                <button
+                                  onClick={handleBookmark}
+                                  className="flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors text-xs text-foreground"
+                                  title="标记"
+                                >
+                                  <Bookmark size={14} />
+                                  <span>标记</span>
+                                </button>
+
+                                <div className="w-px h-4 bg-border" />
+
+                                <button
+                                  onClick={handleNote}
+                                  className="flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors text-xs text-foreground"
+                                  title="写想法"
+                                >
+                                  <Lightbulb size={14} />
+                                  <span>想法</span>
+                                </button>
+
+                                <div className="w-px h-4 bg-border" />
+
+                                <button
+                                  onClick={handleCopy}
+                                  className="flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors text-xs text-foreground"
+                                  title={copied ? '已复制' : '复制'}
+                                >
+                                  {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                                  <span className={copied ? 'text-green-600' : ''}>{copied ? '已复制' : '复制'}</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
 
