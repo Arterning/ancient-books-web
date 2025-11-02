@@ -48,6 +48,7 @@ export interface User {
   username: string;
   is_active: boolean;
   is_superuser: boolean;
+  avatar_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -278,5 +279,47 @@ export const updateOCRCharacter = async (
   data: UpdateOCRCharacterRequest
 ): Promise<OCRCharacter> => {
   const response = await api.put(`/api/ocr/characters/${charId}`, data);
+  return response.data;
+};
+
+// ========== 用户资料 API ==========
+
+// 更新用户名
+export interface UpdateUsernameRequest {
+  username: string;
+}
+
+export const updateUsername = async (data: UpdateUsernameRequest): Promise<User> => {
+  const response = await api.put('/api/users/me/username', data);
+  return response.data;
+};
+
+// 更新密码
+export interface UpdatePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export const updatePassword = async (data: UpdatePasswordRequest): Promise<{ message: string }> => {
+  const response = await api.put('/api/users/me/password', data);
+  return response.data;
+};
+
+// 上传头像
+export const uploadAvatar = async (file: File): Promise<User> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await api.post('/api/users/me/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+// 获取当前用户信息
+export const getCurrentUser = async (): Promise<User> => {
+  const response = await api.get('/api/users/me');
   return response.data;
 };

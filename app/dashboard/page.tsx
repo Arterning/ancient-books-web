@@ -4,6 +4,16 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { getCategoryTree, getBooksByCategory, Category, Book } from '@/lib/api';
+import { FolderTree, Upload, User, Settings, LogOut } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -149,31 +159,65 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-foreground">古籍整理平台</h1>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {/* 管理员功能入口 */}
               {user.is_superuser && (
                 <>
                   <button
                     onClick={() => router.push('/category-management')}
-                    className="classic-button text-sm"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-md border-2 border-border hover:bg-muted transition-colors text-sm"
+                    title="类目管理"
                   >
-                    类目管理
+                    <FolderTree className="h-4 w-4" />
+                    <span className="hidden sm:inline">类目管理</span>
                   </button>
                   <button
                     onClick={() => router.push('/upload-book')}
-                    className="classic-button text-sm"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-md border-2 border-border hover:bg-muted transition-colors text-sm"
+                    title="上传书籍"
                   >
-                    上传书籍
+                    <Upload className="h-4 w-4" />
+                    <span className="hidden sm:inline">上传书籍</span>
                   </button>
                 </>
               )}
-              <span className="text-sm text-muted-foreground">
-                欢迎，<span className="text-primary font-medium">{user.username}</span>
-                {user.is_superuser && <span className="ml-1 text-xs text-primary">(管理员)</span>}
-              </span>
-              <button onClick={handleLogout} className="classic-button-outline text-sm">
-                退出登录
-              </button>
+
+              {/* 用户头像下拉菜单 */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 focus:outline-none">
+                    <Avatar className="h-9 w-9 border-2 border-border cursor-pointer hover:border-primary transition-colors">
+                      <AvatarImage src={user.avatar_url} alt={user.username} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                        {user.username.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.username}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                      {user.is_superuser && (
+                        <p className="text-xs text-primary mt-1">管理员</p>
+                      )}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => router.push('/profile')}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>个人中心</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>退出登录</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
