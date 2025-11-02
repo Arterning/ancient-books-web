@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getBookDetail, BookDetail, BookImage, Chapter, OCRCharacter, API_BASE_URL } from '@/lib/api';
 import { MessageSquare, Bookmark, Lightbulb, Copy, Check, FileEdit } from 'lucide-react';
+import AIChatPanel from '@/components/AIChatPanel';
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -34,6 +35,10 @@ export default function BookDetailPage() {
   const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
   const [copied, setCopied] = useState(false);
   const textContainerRef = useRef<HTMLDivElement>(null);
+
+  // AI 聊天面板状态
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState('');
 
   // Canvas 相关引用
   const imageRef = useRef<HTMLImageElement>(null);
@@ -354,10 +359,14 @@ export default function BookDetailPage() {
     }
   };
 
-  // 问AI（占位）
+  // 问AI
   const handleAskAI = () => {
-    console.log('问AI:', getSelectedText());
-    // TODO: 实现问AI功能
+    const selectedText = getSelectedText();
+    if (selectedText) {
+      setAiQuestion(`"${selectedText}"是什么意思？`);
+      setShowAIChat(true);
+      setShowToolbar(false); // 关闭工具栏
+    }
   };
 
   // 标记（占位）
@@ -473,9 +482,10 @@ export default function BookDetailPage() {
                 <div className="text-muted-foreground">暂无图片</div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-6">
-                {/* 左侧：原始图像 */}
-                <div className="classic-card">
+              <div className={`grid gap-6 ${showAIChat ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                {/* 左侧：原始图像（AI 聊天打开时隐藏）或 OCR 结果 */}
+                {!showAIChat && (
+                  <div className="classic-card">
                   <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-border">
                     <h3 className="text-base font-bold text-foreground">
                       原文影像 (第 {currentPageIndex + 1} / {book.images.length} 页)
@@ -564,9 +574,10 @@ export default function BookDetailPage() {
                     </button>
                   </div>
                 </div>
+                )}
 
-                {/* 右侧：OCR 结果 */}
-                <div className="classic-card">
+                {/* OCR 结果（始终显示，但宽度根据 AI 聊天状态调整）*/}
+                <div className={`classic-card ${showAIChat ? 'col-span-1' : 'col-span-1'}`}>
                   <h3 className="text-base font-bold text-foreground mb-3 pb-2 border-b-2 border-border">
                     OCR 识别结果
                   </h3>
@@ -717,6 +728,17 @@ export default function BookDetailPage() {
                     )}
                   </div>
                 </div>
+
+                {/* AI 聊天面板 */}
+                {showAIChat && (
+                  <div className="col-span-1" style={{ height: '665px' }}>
+                    <AIChatPanel
+                      isOpen={showAIChat}
+                      onClose={() => setShowAIChat(false)}
+                      initialQuestion={aiQuestion}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
