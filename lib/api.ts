@@ -323,3 +323,68 @@ export const getCurrentUser = async (): Promise<User> => {
   const response = await api.get('/api/users/me');
   return response.data;
 };
+
+// ========== 搜索 API ==========
+
+// 全文搜索结果
+export interface FullTextSearchResult {
+  book_id: number;
+  book_title: string;
+  book_author: string | null;
+  page_number: number;
+  image_id: number;
+  text_snippet: string; // 包含高亮标记的HTML
+  match_position: number;
+}
+
+export interface FullTextSearchResponse {
+  total: number;
+  items: FullTextSearchResult[];
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+// 书籍搜索结果
+export interface BookSearchResult {
+  id: number;
+  title: string;
+  author: string | null;
+  dynasty: string | null;
+  description: string | null;
+  created_at: string;
+}
+
+export interface BookSearchResponse {
+  total: number;
+  items: BookSearchResult[];
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+// 搜索参数
+export interface SearchParams {
+  keyword: string;
+  book_title?: string;
+  author?: string;
+  category_ids?: string; // 逗号分隔的分类ID
+  page?: number;
+  page_size?: number;
+}
+
+// 全文搜索
+export const searchFulltext = async (
+  params: SearchParams
+): Promise<FullTextSearchResponse> => {
+  const response = await api.get('/api/search/fulltext', { params });
+  return response.data;
+};
+
+// 书籍搜索
+export const searchBooks = async (
+  params: SearchParams
+): Promise<BookSearchResponse> => {
+  const response = await api.get('/api/search/books', { params });
+  return response.data;
+};

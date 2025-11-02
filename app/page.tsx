@@ -1,6 +1,21 @@
+'use client';
+
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
 
 export default function Home() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search/${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <div className="min-h-screen paper-texture flex items-center justify-center px-4">
       <div className="max-w-4xl mx-auto text-center">
@@ -8,6 +23,25 @@ export default function Home() {
         <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
           <span className="title-decoration">古籍整理平台</span>
         </h1>
+
+        {/* 搜索框 */}
+        <form onSubmit={handleSearch} className="mb-8 max-w-2xl mx-auto">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索古籍内容、书名、作者..."
+              className="w-full px-6 py-4 pr-14 text-lg border-2 border-border rounded-lg focus:outline-none focus:border-primary bg-white shadow-sm"
+            />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              <Search className="h-6 w-6" />
+            </button>
+          </div>
+        </form>
 
         {/* 副标题 */}
         <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
