@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, ThumbsUp, ThumbsDown, Copy, Send, Check } from 'lucide-react';
+import { X, ThumbsUp, ThumbsDown, Copy, Send, Check } from 'lucide-react';
 import { sendChatMessage, updateMessageFeedback, type Message as APIMessage } from '@/lib/api';
 
 interface Message {
@@ -17,25 +17,16 @@ interface AIChatPanelProps {
   onClose: () => void;
   initialQuestion?: string;
   bookId?: number;
-  onMinimizeChange?: (isMinimized: boolean) => void;
 }
 
-export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId, onMinimizeChange }: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }: AIChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isMinimized, setIsMinimized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-
-  // 切换最小化状态并通知父组件
-  const toggleMinimize = () => {
-    const newMinimized = !isMinimized;
-    setIsMinimized(newMinimized);
-    onMinimizeChange?.(newMinimized);
-  };
 
   // 自动滚动到底部
   const scrollToBottom = () => {
@@ -163,17 +154,6 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId, 
     <div className="classic-card h-full flex flex-col">
       {/* 头部 */}
       <div className="flex items-center justify-between pb-3 border-b-2 border-border flex-shrink-0">
-        <button
-          onClick={toggleMinimize}
-          className="p-1.5 rounded hover:bg-muted transition-colors"
-          title={isMinimized ? '展开' : '收起'}
-        >
-          {isMinimized ? (
-            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          )}
-        </button>
         <h3 className="text-base font-bold text-foreground">AI 助手</h3>
         <button
           onClick={onClose}
