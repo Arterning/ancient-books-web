@@ -58,6 +58,15 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }
     const messageText = content || inputValue.trim();
     if (!messageText) return;
 
+    // 立即显示用户消息（使用临时ID）
+    const tempUserMsg: Message = {
+      id: Date.now(),
+      role: 'user',
+      content: messageText,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, tempUserMsg]);
+
     setInputValue('');
     setIsLoading(true);
 
@@ -73,7 +82,7 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }
         setConversationId(response.conversation_id);
       }
 
-      // 添加用户消息和AI回复到聊天界面
+      // 用真实ID更新用户消息，并添加AI回复
       const userMsg: Message = {
         id: response.user_message.id,
         role: response.user_message.role,
@@ -90,12 +99,16 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }
         liked: response.assistant_message.liked,
       };
 
-      setMessages((prev) => [...prev, userMsg, assistantMsg]);
+      // 替换临时消息并添加AI回复
+      setMessages((prev) => {
+        const filtered = prev.filter(msg => msg.id !== tempUserMsg.id);
+        return [...filtered, userMsg, assistantMsg];
+      });
     } catch (error) {
       console.error('发送消息失败:', error);
       // 显示错误消息
       const errorMessage: Message = {
-        id: Date.now(),
+        id: Date.now() + 1,
         role: 'assistant',
         content: '抱歉，AI 服务暂时不可用，请稍后再试。',
         timestamp: new Date(),
