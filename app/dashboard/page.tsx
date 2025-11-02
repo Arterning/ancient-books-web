@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { getCategoryTree, getBooksByCategory, Category, Book } from '@/lib/api';
-import { FolderTree, Upload, User, Settings, LogOut } from 'lucide-react';
+import { FolderTree, Upload, User, Settings, LogOut, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loadingBooks, setLoadingBooks] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   const booksPerPage = 10; // 每页10本书，2列布局
 
@@ -77,6 +78,13 @@ export default function DashboardPage() {
   const handleLogout = () => {
     logout();
     router.push('/login');
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search/${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   const handleCategoryClick = (categoryId: number) => {
@@ -157,8 +165,28 @@ export default function DashboardPage() {
       {/* 顶部导航栏 */}
       <header className="border-b-2 border-border bg-[#fefdfb]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-foreground">古籍整理平台</h1>
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold text-foreground whitespace-nowrap">古籍整理平台</h1>
+
+            {/* 中间搜索框 */}
+            <form onSubmit={handleSearch} className="flex-1 max-w-md">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索古籍..."
+                  className="w-full px-4 py-2 pr-10 border-2 border-border rounded-md focus:outline-none focus:border-primary text-sm"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </div>
+            </form>
+
             <div className="flex items-center gap-3">
               {/* 管理员功能入口 */}
               {user.is_superuser && (
