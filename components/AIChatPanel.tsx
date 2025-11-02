@@ -27,6 +27,7 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }
   const [conversationId, setConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const initialQuestionSentRef = useRef(false);
 
   // 自动滚动到底部
   const scrollToBottom = () => {
@@ -37,12 +38,20 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }
     scrollToBottom();
   }, [messages]);
 
-  // 初始化时发送第一个问题
+  // 初始化时发送第一个问题（只发送一次）
   useEffect(() => {
-    if (isOpen && initialQuestion && messages.length === 0) {
+    if (isOpen && initialQuestion && messages.length === 0 && !initialQuestionSentRef.current) {
+      initialQuestionSentRef.current = true;
       handleSendMessage(initialQuestion);
     }
   }, [isOpen, initialQuestion]);
+
+  // 重置标志（当面板关闭时）
+  useEffect(() => {
+    if (!isOpen) {
+      initialQuestionSentRef.current = false;
+    }
+  }, [isOpen]);
 
   // 发送消息
   const handleSendMessage = async (content?: string) => {
