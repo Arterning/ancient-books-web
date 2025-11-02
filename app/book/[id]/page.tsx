@@ -39,6 +39,7 @@ export default function BookDetailPage() {
   // AI 聊天面板状态
   const [showAIChat, setShowAIChat] = useState(false);
   const [aiQuestion, setAiQuestion] = useState('');
+  const [isAIChatMinimized, setIsAIChatMinimized] = useState(false);
 
   // Canvas 相关引用
   const imageRef = useRef<HTMLImageElement>(null);
@@ -482,9 +483,15 @@ export default function BookDetailPage() {
                 <div className="text-muted-foreground">暂无图片</div>
               </div>
             ) : (
-              <div className={`grid gap-6 ${showAIChat ? 'grid-cols-2' : 'grid-cols-2'}`}>
-                {/* 左侧：原始图像（AI 聊天打开时隐藏）或 OCR 结果 */}
-                {!showAIChat && (
+              <div className={`grid gap-6 ${
+                !showAIChat
+                  ? 'grid-cols-2'  // AI关闭：原文影像 + OCR
+                  : isAIChatMinimized
+                    ? 'grid-cols-[2fr_2fr_1fr]'  // AI最小化：原文影像(40%) + OCR(40%) + AI(20%)
+                    : 'grid-cols-2'  // AI正常：OCR + AI
+              }`}>
+                {/* 原文影像（AI关闭时 或 AI最小化时显示） */}
+                {(!showAIChat || isAIChatMinimized) && (
                   <div className="classic-card">
                   <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-border">
                     <h3 className="text-base font-bold text-foreground">
@@ -576,8 +583,8 @@ export default function BookDetailPage() {
                 </div>
                 )}
 
-                {/* OCR 结果（始终显示，但宽度根据 AI 聊天状态调整）*/}
-                <div className={`classic-card ${showAIChat ? 'col-span-1' : 'col-span-1'}`}>
+                {/* OCR 结果（始终显示）*/}
+                <div className="classic-card">
                   <h3 className="text-base font-bold text-foreground mb-3 pb-2 border-b-2 border-border">
                     OCR 识别结果
                   </h3>
@@ -734,9 +741,13 @@ export default function BookDetailPage() {
                   <div className="col-span-1" style={{ height: '665px' }}>
                     <AIChatPanel
                       isOpen={showAIChat}
-                      onClose={() => setShowAIChat(false)}
+                      onClose={() => {
+                        setShowAIChat(false);
+                        setIsAIChatMinimized(false);
+                      }}
                       initialQuestion={aiQuestion}
                       bookId={bookId}
+                      onMinimizeChange={setIsAIChatMinimized}
                     />
                   </div>
                 )}

@@ -17,9 +17,10 @@ interface AIChatPanelProps {
   onClose: () => void;
   initialQuestion?: string;
   bookId?: number;
+  onMinimizeChange?: (isMinimized: boolean) => void;
 }
 
-export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId, onMinimizeChange }: AIChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
@@ -28,6 +29,13 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }
   const [conversationId, setConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // 切换最小化状态并通知父组件
+  const toggleMinimize = () => {
+    const newMinimized = !isMinimized;
+    setIsMinimized(newMinimized);
+    onMinimizeChange?.(newMinimized);
+  };
 
   // 自动滚动到底部
   const scrollToBottom = () => {
@@ -152,41 +160,32 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }
   if (!isOpen) return null;
 
   return (
-    <div
-      className={`classic-card h-full flex flex-col transition-all duration-300 ${
-        isMinimized ? 'w-16' : 'w-full'
-      }`}
-    >
+    <div className="classic-card h-full flex flex-col">
       {/* 头部 */}
       <div className="flex items-center justify-between pb-3 border-b-2 border-border flex-shrink-0">
-        {!isMinimized && (
-          <h3 className="text-base font-bold text-foreground">AI 助手</h3>
-        )}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsMinimized(!isMinimized)}
-            className="p-1.5 rounded hover:bg-muted transition-colors"
-            title={isMinimized ? '展开' : '最小化'}
-          >
-            {isMinimized ? (
-              <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded hover:bg-muted transition-colors"
-            title="关闭"
-          >
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
+        <button
+          onClick={toggleMinimize}
+          className="p-1.5 rounded hover:bg-muted transition-colors"
+          title={isMinimized ? '展开' : '收起'}
+        >
+          {isMinimized ? (
+            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+        <h3 className="text-base font-bold text-foreground">AI 助手</h3>
+        <button
+          onClick={onClose}
+          className="p-1.5 rounded hover:bg-muted transition-colors"
+          title="关闭"
+        >
+          <X className="h-4 w-4 text-muted-foreground" />
+        </button>
       </div>
 
       {/* 聊天内容区域 */}
-      {!isMinimized && (
-        <>
+      <>
           <div
             ref={chatContainerRef}
             className="flex-1 overflow-y-auto py-4 space-y-4"
@@ -322,16 +321,6 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }
             </form>
           </div>
         </>
-      )}
-
-      {/* 最小化状态 */}
-      {isMinimized && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="writing-mode-vertical-rl text-sm text-muted-foreground">
-            AI助手
-          </div>
-        </div>
-      )}
     </div>
   );
 }
