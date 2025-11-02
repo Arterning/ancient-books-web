@@ -160,9 +160,49 @@ export interface BookDetail extends Book {
 
 // API 函数
 
+// ========== 类目管理 API ==========
+
 // 获取类目树
 export const getCategoryTree = async (): Promise<Category[]> => {
   const response = await api.get('/api/categories/tree');
+  return response.data;
+};
+
+// 创建类目
+export interface CreateCategoryRequest {
+  name: string;
+  parent_id?: number | null;
+  sort_order?: number;
+}
+
+export const createCategory = async (data: CreateCategoryRequest): Promise<Category> => {
+  const response = await api.post('/api/categories/', data);
+  return response.data;
+};
+
+// 更新类目
+export interface UpdateCategoryRequest {
+  name?: string;
+  parent_id?: number | null;
+  sort_order?: number;
+}
+
+export const updateCategory = async (
+  categoryId: number,
+  data: UpdateCategoryRequest
+): Promise<Category> => {
+  const response = await api.put(`/api/categories/${categoryId}`, data);
+  return response.data;
+};
+
+// 删除类目
+export const deleteCategory = async (categoryId: number): Promise<void> => {
+  await api.delete(`/api/categories/${categoryId}`);
+};
+
+// 获取单个类目详情
+export const getCategory = async (categoryId: number): Promise<Category> => {
+  const response = await api.get(`/api/categories/${categoryId}`);
   return response.data;
 };
 
