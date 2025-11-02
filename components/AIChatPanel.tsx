@@ -2,28 +2,30 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft, ThumbsUp, ThumbsDown, Copy, Send, Check } from 'lucide-react';
+import { sendChatMessage, updateMessageFeedback, type Message as APIMessage } from '@/lib/api';
 
 interface Message {
-  id: string;
+  id: number;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  liked?: boolean | null;
 }
 
 interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   initialQuestion?: string;
+  bookId?: number;
 }
 
-export default function AIChatPanel({ isOpen, onClose, initialQuestion }: AIChatPanelProps) {
+export default function AIChatPanel({ isOpen, onClose, initialQuestion, bookId }: AIChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const [likedMessages, setLikedMessages] = useState<Set<string>>(new Set());
-  const [dislikedMessages, setDislikedMessages] = useState<Set<string>>(new Set());
+  const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
+  const [conversationId, setConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -48,33 +50,56 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion }: AIChat
     const messageText = content || inputValue.trim();
     if (!messageText) return;
 
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: messageText,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
 
-    // TODO: 这里接入真实的 AI API
-    // 模拟 AI 回复
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
+    try {
+      const response = await sendChatMessage({
+        conversation_id: conversationId,
+        message: messageText,
+        book_id: bookId,
+      });
+
+      // 更新 conversation ID
+      if (!conversationId) {
+        setConversationId(response.conversation_id);
+      }
+
+      // 添加用户消息和AI回复到聊天界面
+      const userMsg: Message = {
+        id: response.user_message.id,
+        role: response.user_message.role,
+        content: response.user_message.content,
+        timestamp: new Date(response.user_message.created_at),
+        liked: response.user_message.liked,
+      };
+
+      const assistantMsg: Message = {
+        id: response.assistant_message.id,
+        role: response.assistant_message.role,
+        content: response.assistant_message.content,
+        timestamp: new Date(response.assistant_message.created_at),
+        liked: response.assistant_message.liked,
+      };
+
+      setMessages((prev) => [...prev, userMsg, assistantMsg]);
+    } catch (error) {
+      console.error('发送消息失败:', error);
+      // 显示错误消息
+      const errorMessage: Message = {
+        id: Date.now(),
         role: 'assistant',
-        content: `这是一个模拟的 AI 回复。您的问题是："${messageText}"。\n\n在真实环境中，这里会调用 AI API 来生成回答。回答会包含对选中文字的解释、历史背景、文学价值等内容。`,
+        content: '抱歉，AI 服务暂时不可用，请稍后再试。',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   // 复制消息
-  const handleCopyMessage = async (messageId: string, content: string) => {
+  const handleCopyMessage = async (messageId: number, content: string) => {
     try {
       await navigator.clipboard.writeText(content);
       setCopiedMessageId(messageId);
@@ -85,41 +110,43 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion }: AIChat
   };
 
   // 点赞
-  const handleLike = (messageId: string) => {
-    setLikedMessages((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(messageId)) {
-        newSet.delete(messageId);
-      } else {
-        newSet.add(messageId);
-        // 取消踩
-        setDislikedMessages((prev) => {
-          const newDisliked = new Set(prev);
-          newDisliked.delete(messageId);
-          return newDisliked;
-        });
-      }
-      return newSet;
-    });
+  const handleLike = async (messageId: number) => {
+    try {
+      const message = messages.find((m) => m.id === messageId);
+      const newLiked = message?.liked === true ? null : true;
+
+      // 调用 API 更新反馈
+      await updateMessageFeedback(messageId, newLiked === true);
+
+      // 更新本地状态
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, liked: newLiked } : msg
+        )
+      );
+    } catch (error) {
+      console.error('更新点赞失败:', error);
+    }
   };
 
   // 踩
-  const handleDislike = (messageId: string) => {
-    setDislikedMessages((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(messageId)) {
-        newSet.delete(messageId);
-      } else {
-        newSet.add(messageId);
-        // 取消赞
-        setLikedMessages((prev) => {
-          const newLiked = new Set(prev);
-          newLiked.delete(messageId);
-          return newLiked;
-        });
-      }
-      return newSet;
-    });
+  const handleDislike = async (messageId: number) => {
+    try {
+      const message = messages.find((m) => m.id === messageId);
+      const newLiked = message?.liked === false ? null : false;
+
+      // 调用 API 更新反馈
+      await updateMessageFeedback(messageId, newLiked === false);
+
+      // 更新本地状态
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, liked: newLiked } : msg
+        )
+      );
+    } catch (error) {
+      console.error('更新点踩失败:', error);
+    }
   };
 
   if (!isOpen) return null;
@@ -207,7 +234,7 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion }: AIChat
                           <button
                             onClick={() => handleLike(message.id)}
                             className={`p-1 rounded hover:bg-background/50 transition-colors ${
-                              likedMessages.has(message.id) ? 'text-primary' : 'text-muted-foreground'
+                              message.liked === true ? 'text-primary' : 'text-muted-foreground'
                             }`}
                             title="赞"
                           >
@@ -217,7 +244,7 @@ export default function AIChatPanel({ isOpen, onClose, initialQuestion }: AIChat
                           <button
                             onClick={() => handleDislike(message.id)}
                             className={`p-1 rounded hover:bg-background/50 transition-colors ${
-                              dislikedMessages.has(message.id) ? 'text-red-600' : 'text-muted-foreground'
+                              message.liked === false ? 'text-red-600' : 'text-muted-foreground'
                             }`}
                             title="踩"
                           >

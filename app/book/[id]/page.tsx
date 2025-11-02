@@ -736,6 +736,7 @@ export default function BookDetailPage() {
                       isOpen={showAIChat}
                       onClose={() => setShowAIChat(false)}
                       initialQuestion={aiQuestion}
+                      bookId={bookId}
                     />
                   </div>
                 )}

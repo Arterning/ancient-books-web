@@ -388,3 +388,90 @@ export const searchBooks = async (
   const response = await api.get('/api/search/books', { params });
   return response.data;
 };
+
+// ========== AI 对话 API ==========
+
+// 消息类型
+export interface Message {
+  id: number;
+  conversation_id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  liked?: boolean | null;
+  created_at: string;
+}
+
+// 对话类型
+export interface Conversation {
+  id: number;
+  user_id: number;
+  book_id?: number | null;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages: Message[];
+}
+
+// 对话列表项
+export interface ConversationListItem {
+  id: number;
+  title: string;
+  book_id?: number | null;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
+
+// 发送消息请求
+export interface ChatRequest {
+  conversation_id?: number | null;
+  message: string;
+  book_id?: number | null;
+}
+
+// 聊天响应
+export interface ChatResponse {
+  conversation_id: number;
+  user_message: Message;
+  assistant_message: Message;
+}
+
+// 发送消息并获取AI回复
+export const sendChatMessage = async (data: ChatRequest): Promise<ChatResponse> => {
+  const response = await api.post('/api/conversations/chat', data);
+  return response.data;
+};
+
+// 获取对话列表
+export const getConversations = async (
+  bookId?: number,
+  skip: number = 0,
+  limit: number = 50
+): Promise<ConversationListItem[]> => {
+  const params: any = { skip, limit };
+  if (bookId !== undefined) {
+    params.book_id = bookId;
+  }
+  const response = await api.get('/api/conversations/', { params });
+  return response.data;
+};
+
+// 获取对话详情
+export const getConversation = async (conversationId: number): Promise<Conversation> => {
+  const response = await api.get(`/api/conversations/${conversationId}`);
+  return response.data;
+};
+
+// 删除对话
+export const deleteConversation = async (conversationId: number): Promise<void> => {
+  await api.delete(`/api/conversations/${conversationId}`);
+};
+
+// 更新消息反馈
+export const updateMessageFeedback = async (
+  messageId: number,
+  liked: boolean
+): Promise<Message> => {
+  const response = await api.put(`/api/conversations/messages/${messageId}/feedback`, { liked });
+  return response.data;
+};
